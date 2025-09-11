@@ -87,7 +87,7 @@ def load_config(config_fn, lowercase=False):
 
 class Extract_wav2vectbert:
     def __init__(self,device):
-    #semantic_model = Wav2Vec2BertModel.from_pretrained("facebook/w2v-bert-2.0")
+    #semantic_model = Wav2Vec2BertModel.from_pretrained("./checkpoints/hf_cache/facebook/w2v-bert-2.0")
         self.semantic_model = Wav2Vec2BertModel.from_pretrained("./MaskGCT_model/w2v_bert/")
         self.semantic_model.eval()
         self.semantic_model.to(device)
