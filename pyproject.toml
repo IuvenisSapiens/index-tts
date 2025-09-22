@@ -42,7 +42,7 @@ dependencies = [
   "matplotlib==3.10.6",
   "modelscope==1.30.0",
   "munch==4.0.0",
-  "numba==0.61.2",
+  "numba==0.62.0",
   "numpy==1.26.4",
   "omegaconf>=2.3.0",
   "opencv-python==4.9.0.80",
@@ -65,11 +65,11 @@ dependencies = [
 [project.optional-dependencies]
 # To install the WebUI support, use `uv sync --extra webui` (or `--all-extras`).
 webui = [
-  "gradio>=5.46.0",
+  "gradio>=5.46.1",
 ]
 # To install the DeepSpeed support, use `uv sync --extra deepspeed` (or `--all-extras`).
 deepspeed = [
-  "deepspeed==0.17.5",
+  "deepspeed==0.17.6",
 ]
 
 [project.urls]
