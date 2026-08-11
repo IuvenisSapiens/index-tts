@@ -25,6 +25,7 @@ from indextts.s2mel.modules.commons import load_checkpoint2, MyModel
 from indextts.s2mel.modules.bigvgan import bigvgan
 from indextts.s2mel.modules.campplus.DTDNN import CAMPPlus
 from indextts.s2mel.modules.audio import mel_spectrogram
+from indextts.utils.common import save_wav
 
 from transformers import AutoTokenizer, SeamlessM4TFeatureExtractor, Wav2Vec2BertModel
 from modelscope import AutoModelForCausalLM
@@ -712,7 +713,7 @@ class IndexTTS2:
                 print(">> remove old wav file:", output_path)
             if os.path.dirname(output_path) != "":
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            torchaudio.save(output_path, wav.type(torch.int16), sampling_rate)
+            save_wav(output_path, wav.type(torch.int16), sampling_rate)
             print(">> wav file saved to:", output_path)
             if stream_return:
                 return None

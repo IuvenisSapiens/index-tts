@@ -29,6 +29,7 @@ desktop.ini
 /checkpoints*/*
 !/checkpoints*/*.yaml
 /outputs/
+/transformers/*
 
 # Example audio files (downloaded on demand, not stored in git)
 /examples/*.wav

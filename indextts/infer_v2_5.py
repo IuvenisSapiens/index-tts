@@ -29,6 +29,7 @@ from indextts.s2mel.modules.commons import load_checkpoint2, MyModel
 from indextts.s2mel.modules.bigvgan import bigvgan
 from indextts.s2mel.modules.campplus.DTDNN import CAMPPlus
 from indextts.s2mel.modules.audio import mel_spectrogram
+from indextts.utils.common import save_wav
 from transformers import AutoTokenizer
 from modelscope import AutoModelForCausalLM
 from transformers import SeamlessM4TFeatureExtractor, Wav2Vec2BertModel
@@ -539,7 +540,7 @@ class IndexTTS2:
                         os.remove(output_path)
                     if os.path.dirname(output_path) != "":
                         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-                    torchaudio.save(output_path, wav, sampling_rate)
+                    save_wav(output_path, wav, sampling_rate)
                     print(">> wav file saved to:", output_path)
                     return output_path
                 else:
@@ -908,7 +909,7 @@ class IndexTTS2:
             if os.path.dirname(output_path) != "":
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-            torchaudio.save(output_path, wav.type(torch.int16), sampling_rate)
+            save_wav(output_path, wav.type(torch.int16), sampling_rate)
             print(">> wav file saved to:", output_path)
             if stream_return:
                 return None

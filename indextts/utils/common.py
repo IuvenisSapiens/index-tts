@@ -2,6 +2,8 @@ import os
 import random
 import re
 
+import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
 
@@ -24,6 +26,24 @@ def load_audio(audiopath, sampling_rate):
     # clip audio invalid values
     audio.clip_(-1, 1)
     return audio
+
+
+def save_wav(output_path, wav, sampling_rate):
+    if os.path.dirname(output_path) != "":
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    try:
+        torchaudio.save(output_path, wav, sampling_rate)
+        return output_path
+    except Exception as e:
+        print(f"[WARNING] torchaudio.save failed ({e}); falling back to soundfile.write")
+        if isinstance(wav, torch.Tensor):
+            wav_np = wav.detach().cpu().numpy()
+        else:
+            wav_np = np.asarray(wav)
+        if wav_np.ndim == 2 and wav_np.shape[0] == 1:
+            wav_np = wav_np.T
+        sf.write(output_path, wav_np, sampling_rate, subtype="PCM_16")
+        return output_path
 
 
 def tokenize_by_CJK_char(line: str, do_upper_case=True) -> str:
