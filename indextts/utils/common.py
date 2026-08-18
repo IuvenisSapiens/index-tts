@@ -9,6 +9,76 @@ import torchaudio
 
 MATPLOTLIB_FLAG = False
 
+# Full-scale value used everywhere we convert between normalized waveforms and
+# 16-bit PCM. 32767 rather than 32768 so that the positive peak cannot overflow.
+PCM16_MAX = 32767.0
+
+
+def _torchaudio_honors_wav_encoding_args():
+    """Whether ``torchaudio.save()`` still respects ``encoding``/``bits_per_sample``.
+
+    torchaudio < 2.9 derives the WAV subtype from the input dtype, so float32 input
+    silently produces a 32-bit float WAV. We pass the arguments there to keep the
+    16-bit PCM output IndexTTS has always written.
+
+    torchaudio >= 2.9 delegates encoding to TorchCodec, which ignores both arguments
+    and warns when they are supplied. Its WAV default is already 16-bit signed PCM,
+    so we omit them instead of spamming a warning on every save.
+
+    An unparseable version is treated as the newer path: omitting the arguments is
+    harmless there, whereas passing them to TorchCodec always warns.
+    """
+    raw = getattr(torchaudio, "__version__", "") or ""
+    parts = []
+    for chunk in raw.split("+")[0].split(".")[:2]:
+        if not chunk.isdigit():
+            return False
+        parts.append(int(chunk))
+    return len(parts) == 2 and tuple(parts) < (2, 9)
+
+
+def _soundfile_write_pcm_wav(path, wav, sampling_rate):
+    """Fallback writer for environments where TorchCodec cannot be loaded."""
+    wav = wav.detach().to(device="cpu", dtype=torch.float32).clamp_(-1.0, 1.0)
+    wav_np = wav.numpy()
+    if wav_np.ndim == 2:
+        wav_np = wav_np.T
+    sf.write(path, wav_np, sampling_rate, subtype="PCM_16")
+
+
+def save_pcm_wav(path, wav, sampling_rate):
+    """Write a **PCM-scale** waveform to ``path`` as a 16-bit PCM WAV file.
+
+    ``wav`` holds values in ``[-32767, 32767]`` and may be either an integer tensor
+    or the float tensor produced by ``torch.clamp(PCM16_MAX * wav, ...)``. It is
+    normalized to ``[-1, 1]`` float32 here, because that is the only input range
+    ``torchaudio.save()`` interprets identically across versions:
+
+    * torchaudio <= 2.8 rescales integer input by dtype range when encoding.
+    * torchaudio >= 2.9 routes through TorchCodec's ``AudioEncoder``, whose
+      compatibility shim does a bare ``src.float()`` with no rescaling and then
+      treats the result as ``[-1, 1]`` audio. Feeding it PCM-scale samples clips
+      almost every frame to full scale -- no exception, no warning, just a
+      saturated file (see index-tts/index-tts#724).
+
+    Do not pass an already-normalized waveform; it would be attenuated by 32767.
+    """
+    wav = wav.detach().to(device="cpu", dtype=torch.float32) / PCM16_MAX
+    wav = wav.clamp_(-1.0, 1.0)
+    encoding_args = {"encoding": "PCM_S", "bits_per_sample": 16} if _torchaudio_honors_wav_encoding_args() else {}
+
+    try:
+        torchaudio.save(path, wav, sampling_rate, **encoding_args)
+    except Exception as exc:
+        try:
+            _soundfile_write_pcm_wav(path, wav, sampling_rate)
+            return
+        except Exception:
+            raise RuntimeError(
+                "Failed to write WAV with torchaudio and soundfile fallback. "
+                f"Original torchaudio error: {exc}"
+            ) from exc
+
 
 def load_audio(audiopath, sampling_rate):
     audio, sr = torchaudio.load(audiopath)
@@ -26,24 +96,6 @@ def load_audio(audiopath, sampling_rate):
     # clip audio invalid values
     audio.clip_(-1, 1)
     return audio
-
-
-def save_wav(output_path, wav, sampling_rate):
-    if os.path.dirname(output_path) != "":
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    try:
-        torchaudio.save(output_path, wav, sampling_rate)
-        return output_path
-    except Exception as e:
-        print(f"[WARNING] torchaudio.save failed ({e}); falling back to soundfile.write")
-        if isinstance(wav, torch.Tensor):
-            wav_np = wav.detach().cpu().numpy()
-        else:
-            wav_np = np.asarray(wav)
-        if wav_np.ndim == 2 and wav_np.shape[0] == 1:
-            wav_np = wav_np.T
-        sf.write(output_path, wav_np, sampling_rate, subtype="PCM_16")
-        return output_path
 
 
 def tokenize_by_CJK_char(line: str, do_upper_case=True) -> str:
