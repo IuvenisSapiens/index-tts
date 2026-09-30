@@ -4,7 +4,6 @@ import os
 import sys
 import threading
 import time
-
 import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -17,6 +16,7 @@ sys.path.append(current_dir)
 sys.path.append(os.path.join(current_dir, "indextts"))
 
 import argparse
+
 parser = argparse.ArgumentParser(
     description="IndexTTS WebUI",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -88,6 +88,7 @@ if missing:
     print("Model downloaded successfully.")
 
 from indextts.utils.model_download import ensure_config_available
+
 try:
     ensure_config_available(cmd_args.model_dir, version=cmd_args.version)
 except Exception as e:
@@ -97,8 +98,9 @@ except Exception as e:
 IS_V25 = cmd_args.version == "2.5"
 
 import gradio as gr
+
 from indextts.utils.examples_downloader import ensure_examples_available
-from indextts.utils.presets import list_presets, save_preset, load_preset, delete_preset
+from indextts.utils.presets import delete_preset, list_presets, load_preset, save_preset
 from tools.i18n.i18n import I18nAuto
 
 if IS_V25:
@@ -143,15 +145,15 @@ def build_tts(use_accel=False, use_torch_compile=False):
     """Build an IndexTTS2 instance with the requested acceleration options."""
     import torch
 
-    kwargs = dict(
-        model_dir=cmd_args.model_dir,
-        cfg_path=os.path.join(cmd_args.model_dir, "config.yaml"),
-        use_deepspeed=cmd_args.deepspeed,
-        use_cuda_kernel=cmd_args.cuda_kernel,
-        use_accel=use_accel,
-        use_torch_compile=use_torch_compile,
-        use_qwen_emo=LOAD_QWEN_EMO,
-    )
+    kwargs = {
+        "model_dir": cmd_args.model_dir,
+        "cfg_path": os.path.join(cmd_args.model_dir, "config.yaml"),
+        "use_deepspeed": cmd_args.deepspeed,
+        "use_cuda_kernel": cmd_args.cuda_kernel,
+        "use_accel": use_accel,
+        "use_torch_compile": use_torch_compile,
+        "use_qwen_emo": LOAD_QWEN_EMO,
+    }
     if IS_V25:
         use_bf16 = HALF_PRECISION and torch.cuda.is_bf16_supported()
         if HALF_PRECISION and not use_bf16:
@@ -646,7 +648,9 @@ def gen_single(emo_control_method,prompt, text,
                emo_text,emo_random,
                max_text_tokens_per_segment=120,
                duration_factor=1.0,
-                *args, progress=gr.Progress()):
+                *args, progress=None):
+    if progress is None:
+        progress = gr.Progress()
     output_path = None
     if not output_path:
         output_path = os.path.join("outputs", f"spk_{int(time.time())}.wav")
@@ -839,43 +843,40 @@ with gr.Blocks(
             experimental_checkbox = gr.Checkbox(label=i18n("显示实验功能"), value=False)
             _has_glossary = not IS_V25 and hasattr(tts, 'normalizer')
             glossary_checkbox = gr.Checkbox(label=i18n("开启术语词汇读音"), value=tts.normalizer.enable_glossary if _has_glossary else False, visible=_has_glossary)
-        with gr.Accordion(i18n("功能设置")):
+        with gr.Accordion(i18n("功能设置")), gr.Row():
             # 情感控制选项部分
-            with gr.Row():
-                emo_control_method = gr.Radio(
-                    choices=EMO_CHOICES_OFFICIAL,
-                    type="index",
-                    value=EMO_CHOICES_OFFICIAL[0],label=i18n("情感控制方式"))
-                # we MUST have an extra, INVISIBLE list of *all* emotion control
-                # methods so that gr.Dataset() can fetch ALL control mode labels!
-                # otherwise, the gr.Dataset()'s experimental labels would be empty!
-                emo_control_method_all = gr.Radio(
-                    choices=EMO_CHOICES_ALL,
-                    type="index",
-                    value=EMO_CHOICES_ALL[0], label=i18n("情感控制方式"),
-                    visible=False)  # do not render
+            emo_control_method = gr.Radio(
+                choices=EMO_CHOICES_OFFICIAL,
+                type="index",
+                value=EMO_CHOICES_OFFICIAL[0],label=i18n("情感控制方式"))
+            # we MUST have an extra, INVISIBLE list of *all* emotion control
+            # methods so that gr.Dataset() can fetch ALL control mode labels!
+            # otherwise, the gr.Dataset()'s experimental labels would be empty!
+            emo_control_method_all = gr.Radio(
+                choices=EMO_CHOICES_ALL,
+                type="index",
+                value=EMO_CHOICES_ALL[0], label=i18n("情感控制方式"),
+                visible=False)  # do not render
         # 情感参考音频部分
-        with gr.Group(visible=False) as emotion_reference_group:
-            with gr.Row():
-                emo_upload = gr.Audio(label=i18n("上传情感参考音频"), type="filepath")
+        with gr.Group(visible=False) as emotion_reference_group, gr.Row():
+            emo_upload = gr.Audio(label=i18n("上传情感参考音频"), type="filepath")
 
         # 情感随机采样
         with gr.Row(visible=False) as emotion_randomize_group:
             emo_random = gr.Checkbox(label=i18n("情感随机采样"), value=False)
 
         # 情感向量控制部分
-        with gr.Group(visible=False) as emotion_vector_group:
-            with gr.Row():
-                with gr.Column():
-                    vec1 = gr.Slider(label=i18n("喜"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec2 = gr.Slider(label=i18n("怒"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec3 = gr.Slider(label=i18n("哀"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec4 = gr.Slider(label=i18n("惧"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                with gr.Column():
-                    vec5 = gr.Slider(label=i18n("厌恶"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec6 = gr.Slider(label=i18n("低落"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec7 = gr.Slider(label=i18n("惊喜"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
-                    vec8 = gr.Slider(label=i18n("平静"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+        with gr.Group(visible=False) as emotion_vector_group, gr.Row():
+            with gr.Column():
+                vec1 = gr.Slider(label=i18n("喜"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec2 = gr.Slider(label=i18n("怒"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec3 = gr.Slider(label=i18n("哀"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec4 = gr.Slider(label=i18n("惧"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+            with gr.Column():
+                vec5 = gr.Slider(label=i18n("厌恶"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec6 = gr.Slider(label=i18n("低落"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec7 = gr.Slider(label=i18n("惊喜"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
+                vec8 = gr.Slider(label=i18n("平静"), minimum=0.0, maximum=1.0, value=0.0, step=0.05)
 
         with gr.Group(visible=False) as emo_text_group:
             create_experimental_warning_message()
@@ -993,15 +994,14 @@ with gr.Blocks(
             value=i18n("请选择要管理的预设"),
         )
 
-        with gr.Accordion(i18n("从当前状态创建"), open=False):
-            with gr.Row():
-                create_preset_name = gr.Textbox(
-                    label=i18n("预设名称"),
-                    placeholder=i18n("请输入预设名称"),
-                    value="",
-                    scale=2,
-                )
-                create_preset_btn = gr.Button(i18n("创建"), scale=1)
+        with gr.Accordion(i18n("从当前状态创建"), open=False), gr.Row():
+            create_preset_name = gr.Textbox(
+                label=i18n("预设名称"),
+                placeholder=i18n("请输入预设名称"),
+                value="",
+                scale=2,
+            )
+            create_preset_btn = gr.Button(i18n("创建"), scale=1)
 
     # ---------------------------------------------------------------------------
     # Save Preset Modal (global overlay, placed after all tabs)
@@ -1009,23 +1009,22 @@ with gr.Blocks(
     with gr.Column(
         visible=False,
         elem_classes=["preset-modal-overlay"],
-    ) as save_preset_modal:
-        with gr.Column(elem_classes=["preset-modal-content"]):
-            gr.Markdown(f"### {i18n('保存预设')}")
-            modal_preset_preview = gr.Markdown(
-                label=i18n("预设预览"),
-                value=i18n("预设预览"),
+    ) as save_preset_modal, gr.Column(elem_classes=["preset-modal-content"]):
+        gr.Markdown(f"### {i18n('保存预设')}")
+        modal_preset_preview = gr.Markdown(
+            label=i18n("预设预览"),
+            value=i18n("预设预览"),
+        )
+        modal_preset_name = gr.Textbox(
+            label=i18n("预设名称"),
+            placeholder=i18n("请输入预设名称"),
+            value="",
+        )
+        with gr.Row():
+            modal_cancel_btn = gr.Button(i18n("取消"), scale=1)
+            modal_confirm_btn = gr.Button(
+                i18n("确认"), scale=1, variant="primary"
             )
-            modal_preset_name = gr.Textbox(
-                label=i18n("预设名称"),
-                placeholder=i18n("请输入预设名称"),
-                value="",
-            )
-            with gr.Row():
-                modal_cancel_btn = gr.Button(i18n("取消"), scale=1)
-                modal_confirm_btn = gr.Button(
-                    i18n("确认"), scale=1, variant="primary"
-                )
 
     def on_example_click(example):
         print(f"Example clicked: ({len(example)} values) = {example!r}")

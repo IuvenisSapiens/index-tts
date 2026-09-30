@@ -28,53 +28,53 @@ dependencies = [
   # and update the lockfile after editing anything below.
   # WARNING: Ensure that you don't have a local `uv.toml` which overrides PyPI
   # while generating the lockfile: https://github.com/astral-sh/uv/issues/15741
-  "accelerate==1.8.1",
-  "cn2an==0.5.22",
-  "cython==3.0.7",
+  "accelerate==1.15.0",
+  "cn2an==0.5.24",
+  "cython==3.3.0",
   "descript-audiotools==0.7.2",
-  "einops>=0.8.1",
+  "einops>=0.8.2",
   "ffmpeg-python==0.2.0",
-  "fugashi>=1.2.0",
-  "unidic-lite>=1.0.0",
+  "fugashi>=1.5.2",
+  "unidic-lite>=1.0.8",
   "g2p-en==2.1.0",
   "jieba==0.42.1",
-  "json5==0.10.0",
-  "keras==2.9.0",
-  "librosa==0.10.2.post1",
-  "matplotlib==3.10.0",
-  "modelscope==1.27.0",
+  "json5==0.15.0",
+  "keras==3.15.1",
+  "librosa==1.0.0",
+  "matplotlib==3.11.2",
+  "modelscope==1.40.1",
   "munch==4.0.0",
-  "numba==0.63.0",
-  "numpy==2.2.6",
-  "omegaconf>=2.3.0",
-  "opencv-python==4.9.0.80",
-  "pandas==2.3.2",
-  "safetensors==0.5.2",
-  "sentencepiece>=0.2.1",
-  "tensorboard==2.20.0",
-  "textstat>=0.7.10",
-  "tokenizers==0.21.0",
-  "torch==2.8.*",
-  "torchaudio==2.8.*",
-  "requests>=2.28",
-  "tqdm>=4.67.1",
-  "transformers==4.52.1",
-  "openai-whisper>=20231117",
+  "numba==0.67.0",
+  "numpy==2.5.3",
+  "omegaconf>=2.3.1",
+  "opencv-python==5.0.0.93",
+  "pandas==3.0.6",
+  "safetensors==0.8.0",
+  "sentencepiece>=0.2.2",
+  "tensorboard==2.21.0",
+  "textstat>=0.7.13",
+  "tokenizers==0.23.2",
+  "torch==2.14.0",
+  "torchaudio==2.11.0",
+  "requests>=2.34.2",
+  "tqdm>=4.70.1",
+  "transformers==5.17.0",
+  "openai-whisper>=20250625",
   "fugashi[unidic-lite]",
 
   # Use "wetext" on Windows/Mac, otherwise "WeTextProcessing" on Linux.
-  "wetext>=0.0.9; sys_platform != 'linux'",
+  "wetext>=0.1.8",
   "WeTextProcessing; sys_platform == 'linux'",
 ]
 
 [project.optional-dependencies]
 # To install the WebUI support, use `uv sync --extra webui` (or `--all-extras`).
 webui = [
-  "gradio==5.45.0",
+  "gradio==6.29.0",
 ]
 # To install the DeepSpeed support, use `uv sync --extra deepspeed` (or `--all-extras`).
 deepspeed = [
-  "deepspeed==0.17.1",
+  "deepspeed==0.19.7",
 ]
 # To install the GPT2 acceleration engine, use `uv sync --extra accel` (or `--all-extras`).
 # NOTE: flash-attn 2.8.3.post1 also requires triton at import time on Windows.
@@ -82,15 +82,15 @@ accel = [
   "flash-attn==2.8.3.post1",
   "nvidia-cuda-runtime-cu12",
   "nvidia-cudnn-cu12",
-  "triton-windows==3.1.0.post17; sys_platform == 'win32'",
+  "triton-windows==3.8.0.post29",
 ]
 # To install torch.compile support for s2mel, use `uv sync --extra torch_compile` (or `--all-extras`).
 # On Windows this is satisfied by the triton-windows package above.
 torch_compile = [
-  "triton-windows==3.1.0.post17; sys_platform == 'win32'",
+  "triton-windows==3.8.0.post29",
 ]
 test = [
-  "pytest>=7.0",
+  "pytest>=9.1.1",
 ]
 
 [tool.pytest.ini_options]
